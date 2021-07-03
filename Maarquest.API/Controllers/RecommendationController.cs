@@ -1,122 +1,79 @@
-﻿using Maarquest.Logic.Interfaces;
-using Maarquest.Logic.Models;
+﻿// Controllers/RecommendationController.cs
+
+using Maarquest.API.Data;
+using Maarquest.API.Mappers;
+using Maarquest.API.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Maarquest.API.Controllers
+namespace DockerSqlServer.Controllers
 {
-    [Route("[controller]")]
     [ApiController]
-    public class RecommendationController : ControllerBase
+    [Route("[controller]")]
+    public class RecommendationController
     {
-        private IRecommendationService _recommandationService;
-        private ILogger<RecommendationController> _logger;
+        private readonly MaarquestContext _db;
 
-        public RecommendationController(IRecommendationService RecommendationService, ILogger<RecommendationController> logger)
+        public RecommendationController(MaarquestContext db)
         {
-           _recommandationService = RecommendationService;
-            _logger = logger;
+            _db = db;
         }
 
-        /// <summary>
-        ///		Retroune une liste de recommandations
-        ///	</summary>
-        /// <returns>Liste de recommandations</returns>
-        [Route("GetAll")]
         [HttpGet]
-        public async Task<List<Recommendation>> GetAll()
+        public async Task<IActionResult> Get()
         {
-            List<Recommendation> result = null;
+            var data = await _db.RECOMMENDATION.ToListAsync();
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _recommandationService.GetAll();
-            watch.Stop();
+            List<Recommendation> result = RecommendationMapper.ConvertToRecommendationList(data);
 
-            _logger.LogInformation("Recommendation/GetAll/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Retroune une recommandation en fonction de son id
-        ///	</summary>
-        ///	<param name="id">Identifiant de la recommandation</param>
-        /// <returns>La recommandation</returns>
-        [Route("Get/{id}")]
-        [HttpGet]
-        public async Task<Recommendation> Get(int id)
+        [HttpGet("{id}")]
+        public async Task<IActionResult> Get(int id)
         {
-            Recommendation result = null;
+            var data = await _db.RECOMMENDATION.FirstOrDefaultAsync(n => n.RECOMMENDATION_ID == id);
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _recommandationService.Get(id);
-            watch.Stop();
+            Recommendation result = RecommendationMapper.ConvertToRecommendation(data);
 
-            _logger.LogInformation("Recommendation/Get/" + id + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Création d'une recommandation
-        ///	</summary>
-        ///	<param name="recommendation">recommandation</param>
-        /// <returns>La recommandation a été créé</returns>
-        [Route("Add")]
         [HttpPost]
-        public async Task<Recommendation> Add(Recommendation recommendation)
+        public async Task<IActionResult> Post(Recommendation recommendation)
         {
-            Recommendation result = null;
+            RECOMMENDATION data = RecommendationMapper.ConvertToRECOMMENDATION(recommendation);
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _recommandationService.Add(recommendation);
-            watch.Stop();
+            var res = _db.RECOMMENDATION.Add(data);
+            await _db.SaveChangesAsync();
 
-            _logger.LogInformation("Recommendation/Add/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
+            Recommendation result = RecommendationMapper.ConvertToRecommendation(res.Entity);
 
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Modification d'une recommandation
-        ///	</summary>
-        ///	<param name="recommendation">recommandation</param>
-        /// <returns>La recommandation a été modifié</returns>
-        [Route("Update")]
         [HttpPut]
-        public async Task<Recommendation> Update(Recommendation recommendation)
+        public async Task<IActionResult> Put(int id, Recommendation recommendation)
         {
-            Recommendation result = null;
+            var existingRecommendation = await _db.RECOMMENDATION.FirstOrDefaultAsync(n => n.RECOMMENDATION_ID == id);
+             existingRecommendation.CUSTOMER_ID = (recommendation.CustomerId != null) ? recommendation.CustomerId : existingRecommendation.CUSTOMER_ID;
+            existingRecommendation.PRODUCT_CATEGORY_ID = (recommendation.ProductCategoryId > 0) ? recommendation.ProductCategoryId : existingRecommendation.PRODUCT_CATEGORY_ID;
+            existingRecommendation.LABEL = (recommendation.Label != null) ? recommendation.Label : existingRecommendation.LABEL;
+            var success = (await _db.SaveChangesAsync()) > 0;
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _recommandationService.Update(recommendation);
-            watch.Stop();
-
-            _logger.LogInformation("Recommendation/Update/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(success);
         }
 
-        /// <summary>
-        ///		Retroune une liste de recommandations
-        ///	</summary>
-        ///	<param name="id">Identifiant de la recommandation</param>
-        /// <returns>1 si la recommandation est supprimée</returns>
-        [Route("Delete")]
         [HttpDelete]
-        public async Task<int> Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            int result = 0;
+            var recommendation = await _db.RECOMMENDATION.FirstOrDefaultAsync(n => n.RECOMMENDATION_ID == id);
+            _db.Remove(recommendation);
+            var success = (await _db.SaveChangesAsync()) > 0;
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _recommandationService.Delete(id);
-            watch.Stop();
-
-            _logger.LogInformation("Recommendation/Delete/" + id + " |result : " + result.ToString() + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(success);
         }
     }
 }

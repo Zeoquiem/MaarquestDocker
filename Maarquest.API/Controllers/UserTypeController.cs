@@ -1,122 +1,77 @@
-﻿using Maarquest.Logic.Interfaces;
-using Maarquest.Logic.Models;
+﻿// Controllers/UserTypeController.cs
+
+using Maarquest.API.Data;
+using Maarquest.API.Mappers;
+using Maarquest.API.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Maarquest.API.Controllers
+namespace DockerSqlServer.Controllers
 {
-    [Route("[controller]")]
     [ApiController]
-    public class UserTypeController : ControllerBase
+    [Route("[controller]")]
+    public class UserTypeController
     {
-        private IUserTypeService _usertypeService;
-        private ILogger<UserTypeController> _logger;
+        private readonly MaarquestContext _db;
 
-        public UserTypeController(IUserTypeService UserTypeService, ILogger<UserTypeController> logger)
+        public UserTypeController(MaarquestContext db)
         {
-            _usertypeService = UserTypeService;
-            _logger = logger;
+            _db = db;
         }
 
-        /// <summary>
-        ///		Retroune une liste d'utilisateurs
-        ///	</summary>
-        /// <returns>Liste d'utilisateurs</returns>
-        [Route("GetAll")]
         [HttpGet]
-        public async Task<List<UserType>> GetAll()
+        public async Task<IActionResult> Get()
         {
-            List<UserType> result = null;
+            var data = await _db.USER_TYPE.ToListAsync();
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _usertypeService.GetAll();
-            watch.Stop();
+            List<UserType> result = UserTypeMapper.ConvertToUserTypeList(data);
 
-            _logger.LogInformation("UserType/GetAll/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Retroune un utilisateur en fonction de son id
-        ///	</summary>
-        ///	<param name="id">Identifiant de l'utilisateur</param>
-        /// <returns>L'utilisateur</returns>
-        [Route("Get/{id}")]
-        [HttpGet]
-        public async Task<UserType> Get(int id)
+        [HttpGet("{id}")]
+        public async Task<IActionResult> Get(int id)
         {
-            UserType result = null;
+            var data = await _db.USER_TYPE.FirstOrDefaultAsync(n => n.USER_TYPE_ID == id);
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _usertypeService.Get(id);
-            watch.Stop();
+            UserType result = UserTypeMapper.ConvertToUserType(data);
 
-            _logger.LogInformation("UserType/Get/" + id + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Création d'un utilisateur
-        ///	</summary>
-        ///	<param name="usertype">utilisateur</param>
-        /// <returns>L'utilisateur a été créé</returns>
-        [Route("Add")]
         [HttpPost]
-        public async Task<UserType> Add(UserType usertype)
+        public async Task<IActionResult> Post(UserType userType)
         {
-            UserType result = null;
+            USER_TYPE data = UserTypeMapper.ConvertToUSER_TYPE(userType);
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _usertypeService.Add(usertype);
-            watch.Stop();
+            var res = _db.USER_TYPE.Add(data);
+            await _db.SaveChangesAsync();
 
-            _logger.LogInformation("UserType/Add/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
+            UserType result = UserTypeMapper.ConvertToUserType(res.Entity);
 
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Modification d'un utilisateur
-        ///	</summary>
-        ///	<param name="UserType">utilisateur</param>
-        /// <returns>L'utilisateur a été modifié</returns>
-        [Route("Update")]
         [HttpPut]
-        public async Task<UserType> Update(UserType UserType)
+        public async Task<IActionResult> Put(int id, UserType userType)
         {
-            UserType result = null;
+            var existingUserType = await _db.USER_TYPE.FirstOrDefaultAsync(n => n.USER_TYPE_ID == id);
+            existingUserType.LABEL = (userType.Label != null) ? userType.Label : existingUserType.LABEL;
+            var success = (await _db.SaveChangesAsync()) > 0;
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _usertypeService.Update(UserType);
-            watch.Stop();
-
-            _logger.LogInformation("UserType/Update/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(success);
         }
 
-        /// <summary>
-        ///		Retroune une liste d'utilisateurs
-        ///	</summary>
-        ///	<param name="id">Identifiant de l'utilisateur</param>
-        /// <returns>1 si l'utilisateur est supprimé</returns>
-        [Route("Delete")]
         [HttpDelete]
-        public async Task<int> Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            int result = 0;
+            var UserType = await _db.USER_TYPE.FirstOrDefaultAsync(n => n.USER_TYPE_ID == id);
+            _db.Remove(UserType);
+            var success = (await _db.SaveChangesAsync()) > 0;
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _usertypeService.Delete(id);
-            watch.Stop();
-
-            _logger.LogInformation("UserType/Delete/" + id + " |result : " + result.ToString() + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(success);
         }
     }
 }

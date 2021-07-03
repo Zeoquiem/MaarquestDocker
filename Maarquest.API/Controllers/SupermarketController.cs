@@ -1,122 +1,79 @@
-﻿using Maarquest.Logic.Interfaces;
-using Maarquest.Logic.Models;
+﻿// Controllers/SupermarketController.cs
+
+using Maarquest.API.Data;
+using Maarquest.API.Mappers;
+using Maarquest.API.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Maarquest.API.Controllers
+namespace DockerSqlServer.Controllers
 {
-    [Route("[controller]")]
     [ApiController]
-    public class SupermarketController : ControllerBase
+    [Route("[controller]")]
+    public class SupermarketController
     {
-        private ISupermarketService  _supermarketService;
-        private ILogger<SupermarketController> _logger;
+        private readonly MaarquestContext _db;
 
-        public SupermarketController(ISupermarketService SupermarketService, ILogger<SupermarketController> logger)
+        public SupermarketController(MaarquestContext db)
         {
-            _supermarketService = SupermarketService;
-            _logger = logger;
+            _db = db;
         }
 
-        /// <summary>
-        ///		Retroune une liste de supermarchés
-        ///	</summary>
-        /// <returns>Liste de supermarchés</returns>
-        [Route("GetAll")]
         [HttpGet]
-        public async Task<List<Supermarket>> GetAll()
+        public async Task<IActionResult> Get()
         {
-            List<Supermarket> result = null;
+            var data = await _db.SUPERMARKET.ToListAsync();
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await  _supermarketService.GetAll();
-            watch.Stop();
+            List<Supermarket> result = SupermarketMapper.ConvertToSupermarketList(data);
 
-            _logger.LogInformation("Supermarket/GetAll/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Retroune un supermarché en fonction de son id
-        ///	</summary>
-        ///	<param name="id">Identifiant du supermarché</param>
-        /// <returns>Le supermarché</returns>
-        [Route("Get/{id}")]
-        [HttpGet]
-        public async Task<Supermarket> Get(int id)
+        [HttpGet("{id}")]
+        public async Task<IActionResult> Get(int id)
         {
-            Supermarket result = null;
+            var data = await _db.SUPERMARKET.FirstOrDefaultAsync(n => n.SUPERMARKET_ID == id);
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await  _supermarketService.Get(id);
-            watch.Stop();
+            Supermarket result = SupermarketMapper.ConvertToSupermarket(data);
 
-            _logger.LogInformation("Supermarket/Get/" + id + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Création d'un supermarché
-        ///	</summary>
-        ///	<param name="supermarket">supermarché</param>
-        /// <returns>Le supermarché créé</returns>
-        [Route("Add")]
         [HttpPost]
-        public async Task<Supermarket> Add(Supermarket supermarket)
+        public async Task<IActionResult> Post(Supermarket Supermarket)
         {
-            Supermarket result = null;
+            SUPERMARKET data = SupermarketMapper.ConvertToSUPERMARKET(Supermarket);
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await  _supermarketService.Add(supermarket);
-            watch.Stop();
+            var res = _db.SUPERMARKET.Add(data);
+            await _db.SaveChangesAsync();
 
-            _logger.LogInformation("Supermarket/Add/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
+            Supermarket result = SupermarketMapper.ConvertToSupermarket(res.Entity);
 
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Modification d'un supermarché
-        ///	</summary>
-        ///	<param name="supermarket">supermarché</param>
-        /// <returns>Le supermarché modifié</returns>
-        [Route("Update")]
         [HttpPut]
-        public async Task<Supermarket> Update(Supermarket supermarket)
+        public async Task<IActionResult> Put(int id, Supermarket supermarket)
         {
-            Supermarket result = null;
+            var existingSupermarket = await _db.SUPERMARKET.FirstOrDefaultAsync(n => n.SUPERMARKET_ID == id);
+            existingSupermarket.ADDRESS_ID = (supermarket.AddressId != null) ? supermarket.AddressId : existingSupermarket.ADDRESS_ID;
+            existingSupermarket.TEL = (supermarket.Tel > 0) ? supermarket.Tel : existingSupermarket.TEL;
+            existingSupermarket.FAX = (supermarket.Fax > 0) ? supermarket.Fax : existingSupermarket.FAX;
+            var success = (await _db.SaveChangesAsync()) > 0;
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await  _supermarketService.Update(supermarket);
-            watch.Stop();
-
-            _logger.LogInformation("Supermarket/Update/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(success);
         }
 
-        /// <summary>
-        ///		Retroune une liste de supermarchés
-        ///	</summary>
-        ///	<param name="id">Identifiant du supermarché</param>
-        /// <returns>1 si le supermarché est supprimé</returns>
-        [Route("Delete")]
         [HttpDelete]
-        public async Task<int> Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            int result = 0;
+            var supermarket = await _db.SUPERMARKET.FirstOrDefaultAsync(n => n.SUPERMARKET_ID == id);
+            _db.Remove(supermarket);
+            var success = (await _db.SaveChangesAsync()) > 0;
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await  _supermarketService.Delete(id);
-            watch.Stop();
-
-            _logger.LogInformation("Supermarket/Delete/" + id + " |result : " + result.ToString() + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(success);
         }
     }
 }

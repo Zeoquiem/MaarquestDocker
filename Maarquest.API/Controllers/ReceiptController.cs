@@ -1,122 +1,81 @@
-﻿using Maarquest.Logic.Interfaces;
-using Maarquest.Logic.Models;
+﻿// Controllers/ReceiptController.cs
+
+using Maarquest.API.Data;
+using Maarquest.API.Mappers;
+using Maarquest.API.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Maarquest.API.Controllers
+namespace DockerSqlServer.Controllers
 {
-    [Route("[controller]")]
     [ApiController]
-    public class ReceiptController : ControllerBase
+    [Route("[controller]")]
+    public class ReceiptController
     {
-        private IReceiptService _receiptService;
-        private ILogger<ReceiptController> _logger;
+        private readonly MaarquestContext _db;
 
-        public ReceiptController(IReceiptService ReceiptService, ILogger<ReceiptController> logger)
+        public ReceiptController(MaarquestContext db)
         {
-            _receiptService = ReceiptService;
-            _logger = logger;
+            _db = db;
         }
 
-        /// <summary>
-        ///		Retroune une liste de reçus
-        ///	</summary>
-        /// <returns>Liste de reçus</returns>
-        [Route("GetAll")]
         [HttpGet]
-        public async Task<List<Receipt>> GetAll()
+        public async Task<IActionResult> Get()
         {
-            List<Receipt> result = null;
+            var data = await _db.RECEIPT.ToListAsync();
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _receiptService.GetAll();
-            watch.Stop();
+            List<Receipt> result = ReceiptMapper.ConvertToReceiptList(data);
 
-            _logger.LogInformation("Receipt/GetAll/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Retroune un reçu en fonction de son id
-        ///	</summary>
-        ///	<param name="id">Identifiant du reçu</param>
-        /// <returns>Le reçu</returns>
-        [Route("Get/{id}")]
-        [HttpGet]
-        public async Task<Receipt> Get(int id)
+        [HttpGet("{id}")]
+        public async Task<IActionResult> Get(int id)
         {
-            Receipt result = null;
+            var data = await _db.RECEIPT.FirstOrDefaultAsync(n => n.RECEIPT_ID == id);
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _receiptService.Get(id);
-            watch.Stop();
+            Receipt result = ReceiptMapper.ConvertToReceipt(data);
 
-            _logger.LogInformation("Receipt/Get/" + id + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Création d'un reçu
-        ///	</summary>
-        ///	<param name="receipt">reçu</param>
-        /// <returns>Le reçu créé</returns>
-        [Route("Add")]
         [HttpPost]
-        public async Task<Receipt> Add(Receipt receipt)
+        public async Task<IActionResult> Post(Receipt receipt)
         {
-            Receipt result = null;
+            RECEIPT data = ReceiptMapper.ConvertToRECEIPT(receipt);
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _receiptService.Add(receipt);
-            watch.Stop();
+            var res = _db.RECEIPT.Add(data);
+            await _db.SaveChangesAsync();
 
-            _logger.LogInformation("Receipt/Add/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
+            Receipt result = ReceiptMapper.ConvertToReceipt(res.Entity);
 
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Modification d'un reçu
-        ///	</summary>
-        ///	<param name="receipt">reçu</param>
-        /// <returns>Le reçu modifié</returns>
-        [Route("Update")]
         [HttpPut]
-        public async Task<Receipt> Update(Receipt receipt)
+        public async Task<IActionResult> Put(int id, Receipt receipt)
         {
-            Receipt result = null;
+            var existingReceipt = await _db.RECEIPT.FirstOrDefaultAsync(n => n.RECEIPT_ID == id);
+            existingReceipt.CUSTOMER_ID = (receipt.CustomerId != null) ? receipt.CustomerId : existingReceipt.CUSTOMER_ID;
+            existingReceipt.UNIT_PRICE = (receipt.UnitPrice > 0) ? receipt.UnitPrice : existingReceipt.UNIT_PRICE;
+             existingReceipt.TAX = (receipt.Tax > 0) ? receipt.Tax : existingReceipt.TAX;
+             existingReceipt.TOTAL_PRICE = (receipt.TotalPrice > 0) ? receipt.TotalPrice : existingReceipt.TOTAL_PRICE;
+             existingReceipt.DATE = (receipt.Date != null) ? receipt.Date : existingReceipt.DATE;
+            var success = (await _db.SaveChangesAsync()) > 0;
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _receiptService.Update(receipt);
-            watch.Stop();
-
-            _logger.LogInformation("Receipt/Update/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(success);
         }
 
-        /// <summary>
-        ///		Retroune une liste de reçus
-        ///	</summary>
-        ///	<param name="id">Identifiant du reçu</param>
-        /// <returns>1 si le reçu est supprimée</returns>
-        [Route("Delete")]
         [HttpDelete]
-        public async Task<int> Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            int result = 0;
+            var receipt = await _db.RECEIPT.FirstOrDefaultAsync(n => n.RECEIPT_ID == id);
+            _db.Remove(receipt);
+            var success = (await _db.SaveChangesAsync()) > 0;
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _receiptService.Delete(id);
-            watch.Stop();
-
-            _logger.LogInformation("Receipt/Delete/" + id + " |result : " + result.ToString() + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(success);
         }
     }
 }

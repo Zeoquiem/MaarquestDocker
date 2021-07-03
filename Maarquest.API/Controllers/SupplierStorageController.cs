@@ -1,122 +1,79 @@
-﻿using Maarquest.Logic.Interfaces;
-using Maarquest.Logic.Models;
+﻿// Controllers/SupplierStorageController.cs
+
+using Maarquest.API.Data;
+using Maarquest.API.Mappers;
+using Maarquest.API.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Maarquest.API.Controllers
+namespace DockerSqlServer.Controllers
 {
-    [Route("[controller]")]
     [ApiController]
-    public class SupplierStorageController : ControllerBase
+    [Route("[controller]")]
+    public class SupplierStorageController
     {
-        private ISupplierStorageService _adressService;
-        private ILogger<SupplierStorageController> _logger;
+        private readonly MaarquestContext _db;
 
-        public SupplierStorageController(ISupplierStorageService supplierStorageService, ILogger<SupplierStorageController> logger)
+        public SupplierStorageController(MaarquestContext db)
         {
-            _adressService = supplierStorageService;
-            _logger = logger;
+            _db = db;
         }
 
-        /// <summary>
-        ///		Retroune une liste de fonctions d'opérateur d'un supermarché
-        ///	</summary>
-        /// <returns>Liste de fonctions d'opérateur d'un supermarché</returns>
-        [Route("GetAll")]
         [HttpGet]
-        public async Task<List<SupplierStorage>> GetAll()
+        public async Task<IActionResult> Get()
         {
-            List<SupplierStorage> result = null;
+            var data = await _db.SUPPLIER_STORAGE.ToListAsync();
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.GetAll();
-            watch.Stop();
+            List<SupplierStorage> result = SupplierStorageMapper.ConvertToSupplierStorageList(data);
 
-            _logger.LogInformation("SupplierStorage/GetAll/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Retroune un fonction d'opérateur d'un supermarché en fonction de son id
-        ///	</summary>
-        ///	<param name="id">Identifiant du fonction d'opérateur d'un supermarché</param>
-        /// <returns>Le fonction d'opérateur d'un supermarché</returns>
-        [Route("Get/{id}")]
-        [HttpGet]
-        public async Task<SupplierStorage> Get(int id)
+        [HttpGet("{id}")]
+        public async Task<IActionResult> Get(int id)
         {
-            SupplierStorage result = null;
+            var data = await _db.SUPPLIER_STORAGE.FirstOrDefaultAsync(n => n.SUPPLIER_STORAGE_ID == id);
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Get(id);
-            watch.Stop();
+            SupplierStorage result = SupplierStorageMapper.ConvertToSupplierStorage(data);
 
-            _logger.LogInformation("SupplierStorage/Get/" + id + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Création du fonction d'opérateur d'un supermarché
-        ///	</summary>
-        ///	<param name="supplierStorage">Fonction d'opérateur d'un supermarché</param>
-        /// <returns>Le fonction d'opérateur d'un supermarché créé</returns>
-        [Route("Add")]
         [HttpPost]
-        public async Task<SupplierStorage> Add(SupplierStorage supplierStorage)
+        public async Task<IActionResult> Post(SupplierStorage supplierStorage)
         {
-            SupplierStorage result = null;
+            SUPPLIER_STORAGE data = SupplierStorageMapper.ConvertToSUPPLIER_STORAGE(supplierStorage);
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Add(supplierStorage);
-            watch.Stop();
+            var res = _db.SUPPLIER_STORAGE.Add(data);
+            await _db.SaveChangesAsync();
 
-            _logger.LogInformation("SupplierStorage/Add/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
+            SupplierStorage result = SupplierStorageMapper.ConvertToSupplierStorage(res.Entity);
 
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Modification d'un fonction d'opérateur d'un supermarché
-        ///	</summary>
-        ///	<param name="supplierStorage">Fonction d'opérateur d'un supermarché</param>
-        /// <returns>Le fonction d'opérateur d'un supermarché modifié</returns>
-        [Route("Update")]
         [HttpPut]
-        public async Task<SupplierStorage> Update(SupplierStorage supplierStorage)
+        public async Task<IActionResult> Put(int id, SupplierStorage supplierStorage)
         {
-            SupplierStorage result = null;
+            var existingSupplierStorage = await _db.SUPPLIER_STORAGE.FirstOrDefaultAsync(n => n.SUPPLIER_STORAGE_ID == id);
+            existingSupplierStorage.SUPPLIER_STORAGE_ID = (supplierStorage.SupplierStorageId != null) ? supplierStorage.SupplierStorageId : existingSupplierStorage.SUPPLIER_STORAGE_ID;
+            existingSupplierStorage.SUPLLIER_ID = (supplierStorage.SupplierId > 0) ? supplierStorage.SupplierId : existingSupplierStorage.SUPPLIER_ID;
+            existingSupplierStorage.ADDRESS_ID = (supplierStorage.AddressId != null) ? supplierStorage.AddressId : existingSupplierStorage.ADDRESS_ID;
+            var success = (await _db.SaveChangesAsync()) > 0;
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Update(supplierStorage);
-            watch.Stop();
-
-            _logger.LogInformation("SupplierStorage/Update/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(success);
         }
 
-        /// <summary>
-        ///		Supprime un fonction d'opérateur d'un supermarché
-        ///	</summary>
-        ///	<param name="id">Identifiant du fonction d'opérateur d'un supermarché</param>
-        /// <returns>1 si le fonction d'opérateur d'un supermarché est supprimé</returns>
-        [Route("Delete")]
         [HttpDelete]
-        public async Task<int> Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            int result = 0;
+            var supplierStorage = await _db.SUPPLIER_STORAGE.FirstOrDefaultAsync(n => n.SUPPLIER_STORAGE_ID == id);
+            _db.Remove(supplierStorage);
+            var success = (await _db.SaveChangesAsync()) > 0;
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Delete(id);
-            watch.Stop();
-
-            _logger.LogInformation("SupplierStorage/Delete/" + id + " |result : " + result.ToString() + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(success);
         }
     }
 }

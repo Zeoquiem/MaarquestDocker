@@ -1,122 +1,79 @@
-﻿using Maarquest.Logic.Interfaces;
-using Maarquest.Logic.Models;
+﻿// Controllers/SupplierProductRequestController.cs
+
+using Maarquest.API.Data;
+using Maarquest.API.Mappers;
+using Maarquest.API.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Maarquest.API.Controllers
+namespace DockerSqlServer.Controllers
 {
-    [Route("[controller]")]
     [ApiController]
-    public class SupplierProductRequestController : ControllerBase
+    [Route("[controller]")]
+    public class SupplierProductRequestController
     {
-        private ISupplierProductRequestService _adressService;
-        private ILogger<SupplierProductRequestController> _logger;
+        private readonly MaarquestContext _db;
 
-        public SupplierProductRequestController(ISupplierProductRequestService supplierProductRequestService, ILogger<SupplierProductRequestController> logger)
+        public SupplierProductRequestController(MaarquestContext db)
         {
-            _adressService = supplierProductRequestService;
-            _logger = logger;
+            _db = db;
         }
 
-        /// <summary>
-        ///		Retroune une liste de fonctions d'opérateur d'un supermarché
-        ///	</summary>
-        /// <returns>Liste de fonctions d'opérateur d'un supermarché</returns>
-        [Route("GetAll")]
         [HttpGet]
-        public async Task<List<SupplierProductRequest>> GetAll()
+        public async Task<IActionResult> Get()
         {
-            List<SupplierProductRequest> result = null;
+            var data = await _db.SUPPLIER_PRODUCT_REQUEST.ToListAsync();
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.GetAll();
-            watch.Stop();
+            List<SupplierProductRequest> result = SupplierProductRequestMapper.ConvertToSupplierProductRequestList(data);
 
-            _logger.LogInformation("SupplierProductRequest/GetAll/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Retroune un fonction d'opérateur d'un supermarché en fonction de son id
-        ///	</summary>
-        ///	<param name="id">Identifiant du fonction d'opérateur d'un supermarché</param>
-        /// <returns>Le fonction d'opérateur d'un supermarché</returns>
-        [Route("Get/{id}")]
-        [HttpGet]
-        public async Task<SupplierProductRequest> Get(int id)
+        [HttpGet("{id}")]
+        public async Task<IActionResult> Get(int id)
         {
-            SupplierProductRequest result = null;
+            var data = await _db.SUPPLIER_PRODUCT_REQUEST.FirstOrDefaultAsync(n => n.SUPPLIER_PRODUCT_REQUEST_ID == id);
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Get(id);
-            watch.Stop();
+            SupplierProductRequest result = SupplierProductRequestMapper.ConvertToSupplierProductRequest(data);
 
-            _logger.LogInformation("SupplierProductRequest/Get/" + id + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Création du fonction d'opérateur d'un supermarché
-        ///	</summary>
-        ///	<param name="supplierProductRequest">Fonction d'opérateur d'un supermarché</param>
-        /// <returns>Le fonction d'opérateur d'un supermarché créé</returns>
-        [Route("Add")]
         [HttpPost]
-        public async Task<SupplierProductRequest> Add(SupplierProductRequest supplierProductRequest)
+        public async Task<IActionResult> Post(SupplierProductRequest supplierProductRequest)
         {
-            SupplierProductRequest result = null;
+            SUPPLIER_PRODUCT_REQUEST data = SupplierProductRequestMapper.ConvertToSUPPLIER_PRODUCT_REQUEST(supplierProductRequest);
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Add(supplierProductRequest);
-            watch.Stop();
+            var res = _db.SUPPLIER_PRODUCT_REQUEST.Add(data);
+            await _db.SaveChangesAsync();
 
-            _logger.LogInformation("SupplierProductRequest/Add/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
+            SupplierProductRequest result = SupplierProductRequestMapper.ConvertToSupplierProductRequest(res.Entity);
 
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Modification d'un fonction d'opérateur d'un supermarché
-        ///	</summary>
-        ///	<param name="supplierProductRequest">Fonction d'opérateur d'un supermarché</param>
-        /// <returns>Le fonction d'opérateur d'un supermarché modifié</returns>
-        [Route("Update")]
         [HttpPut]
-        public async Task<SupplierProductRequest> Update(SupplierProductRequest supplierProductRequest)
+        public async Task<IActionResult> Put(int id, SupplierProductRequest SupplierProductRequest)
         {
-            SupplierProductRequest result = null;
+            var existingSupplierProductRequest = await _db.SUPPLIER_PRODUCT_REQUEST.FirstOrDefaultAsync(n => n.SUPPLIER_PRODUCT_REQUEST_ID == id);
+            existingSupplierProductRequest.SUPPLIER_ID = (SupplierProductRequest.SupplierId != null) ? SupplierProductRequest.SupplierId : existingSupplierProductRequest.SUPPLIER_ID;
+            existingSupplierProductRequest.PRODUCT_CATEGORY_ID = (SupplierProductRequest.ProductCategoryId > 0) ? SupplierProductRequest.ProductCategoryId : existingSupplierProductRequest.PRODUCT_CATEGORY_ID;
+            existingSupplierProductRequest.IS_TREATED = (SupplierProductRequest.IsTreated != null) ? SupplierProductRequest.IsTreated : existingSupplierProductRequest.IS_TREATED;
+            var success = (await _db.SaveChangesAsync()) > 0;
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Update(supplierProductRequest);
-            watch.Stop();
-
-            _logger.LogInformation("SupplierProductRequest/Update/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(success);
         }
 
-        /// <summary>
-        ///		Supprime un fonction d'opérateur d'un supermarché
-        ///	</summary>
-        ///	<param name="id">Identifiant du fonction d'opérateur d'un supermarché</param>
-        /// <returns>1 si le fonction d'opérateur d'un supermarché est supprimé</returns>
-        [Route("Delete")]
         [HttpDelete]
-        public async Task<int> Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            int result = 0;
+            var supplierProductRequest = await _db.SUPPLIER_PRODUCT_REQUEST.FirstOrDefaultAsync(n => n.SUPPLIER_PRODUCT_REQUEST_ID == id);
+            _db.Remove(supplierProductRequest);
+            var success = (await _db.SaveChangesAsync()) > 0;
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Delete(id);
-            watch.Stop();
-
-            _logger.LogInformation("SupplierProductRequest/Delete/" + id + " |result : " + result.ToString() + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(success);
         }
     }
 }

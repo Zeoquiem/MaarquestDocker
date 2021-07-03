@@ -1,122 +1,77 @@
-﻿using Maarquest.Logic.Interfaces;
-using Maarquest.Logic.Models;
+﻿// Controllers/PromotionTypeController.cs
+
+using Maarquest.API.Data;
+using Maarquest.API.Mappers;
+using Maarquest.API.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Maarquest.API.Controllers
+namespace DockerSqlServer.Controllers
 {
-    [Route("[controller]")]
     [ApiController]
-    public class PromotionTypeController : ControllerBase
+    [Route("[controller]")]
+    public class PromotionTypeController
     {
-        private IPromotionTypeService _adressService;
-        private ILogger<PromotionTypeController> _logger;
+        private readonly MaarquestContext _db;
 
-        public PromotionTypeController(IPromotionTypeService promotionTypeService, ILogger<PromotionTypeController> logger)
+        public PromotionTypeController(MaarquestContext db)
         {
-            _adressService = promotionTypeService;
-            _logger = logger;
+            _db = db;
         }
 
-        /// <summary>
-        ///		Retroune une liste de types de promotion
-        ///	</summary>
-        /// <returns>Liste de types de promotion</returns>
-        [Route("GetAll")]
         [HttpGet]
-        public async Task<List<PromotionType>> GetAll()
+        public async Task<IActionResult> Get()
         {
-            List<PromotionType> result = null;
+            var data = await _db.PROMOTION_TYPE.ToListAsync();
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.GetAll();
-            watch.Stop();
+            List<PromotionType> result = PromotionTypeMapper.ConvertToPromotionTypeList(data);
 
-            _logger.LogInformation("PromotionType/GetAll/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Retroune un type de promotion en fonction de son id
-        ///	</summary>
-        ///	<param name="id">Identifiant du type de promotion</param>
-        /// <returns>Le type de promotion</returns>
-        [Route("Get/{id}")]
-        [HttpGet]
-        public async Task<PromotionType> Get(int id)
+        [HttpGet("{id}")]
+        public async Task<IActionResult> Get(int id)
         {
-            PromotionType result = null;
+            var data = await _db.PROMOTION_TYPE.FirstOrDefaultAsync(n => n.PROMOTION_TYPE_ID == id);
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Get(id);
-            watch.Stop();
+            PromotionType result = PromotionTypeMapper.ConvertToPromotionType(data);
 
-            _logger.LogInformation("PromotionType/Get/" + id + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Création du type de promotion
-        ///	</summary>
-        ///	<param name="promotionType">Type de promotion</param>
-        /// <returns>Le type de promotion créé</returns>
-        [Route("Add")]
         [HttpPost]
-        public async Task<PromotionType> Add(PromotionType promotionType)
+        public async Task<IActionResult> Post(PromotionType promotionType)
         {
-            PromotionType result = null;
+            PROMOTION_TYPE data = PromotionTypeMapper.ConvertToPROMOTION_TYPE(promotionType);
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Add(promotionType);
-            watch.Stop();
+            var res = _db.PROMOTION_TYPE.Add(data);
+            await _db.SaveChangesAsync();
 
-            _logger.LogInformation("PromotionType/Add/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
+            PromotionType result = PromotionTypeMapper.ConvertToPromotionType(res.Entity);
 
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Modification d'un type de promotion
-        ///	</summary>
-        ///	<param name="promotionType">Type de promotion</param>
-        /// <returns>Le type de promotion modifié</returns>
-        [Route("Update")]
         [HttpPut]
-        public async Task<PromotionType> Update(PromotionType promotionType)
+        public async Task<IActionResult> Put(int id, PromotionType promotionType)
         {
-            PromotionType result = null;
+            var existingPromotionType = await _db.PROMOTION_TYPE.FirstOrDefaultAsync(n => n.PROMOTION_TYPE_ID == id);
+            existingPromotionType.OPERATION = (promotionType.Operation != null) ? promotionType.Operation : existingPromotionType.OPERATION;
+            var success = (await _db.SaveChangesAsync()) > 0;
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Update(promotionType);
-            watch.Stop();
-
-            _logger.LogInformation("PromotionType/Update/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(success);
         }
 
-        /// <summary>
-        ///		Supprime un type de promotion
-        ///	</summary>
-        ///	<param name="id">Identifiant du type de promotion</param>
-        /// <returns>1 si le type de promotion est supprimé</returns>
-        [Route("Delete")]
         [HttpDelete]
-        public async Task<int> Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            int result = 0;
+            var promotionType = await _db.PROMOTION_TYPE.FirstOrDefaultAsync(n => n.PROMOTION_TYPE_ID == id);
+            _db.Remove(promotionType);
+            var success = (await _db.SaveChangesAsync()) > 0;
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Delete(id);
-            watch.Stop();
-
-            _logger.LogInformation("PromotionType/Delete/" + id + " |result : " + result.ToString() + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(success);
         }
     }
 }

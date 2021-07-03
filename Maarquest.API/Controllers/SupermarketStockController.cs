@@ -1,122 +1,77 @@
-﻿using Maarquest.Logic.Interfaces;
-using Maarquest.Logic.Models;
+﻿// Controllers/SupermarketStockController.cs
+
+using Maarquest.API.Data;
+using Maarquest.API.Mappers;
+using Maarquest.API.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Maarquest.API.Controllers
+namespace DockerSqlServer.Controllers
 {
-    [Route("[controller]")]
     [ApiController]
-    public class SupermarketStockController : ControllerBase
+    [Route("[controller]")]
+    public class SupermarketStockController
     {
-        private ISupermarketStockService _adressService;
-        private ILogger<SupermarketStockController> _logger;
+        private readonly MaarquestContext _db;
 
-        public SupermarketStockController(ISupermarketStockService supermarketStockService, ILogger<SupermarketStockController> logger)
+        public SupermarketStockController(MaarquestContext db)
         {
-            _adressService = supermarketStockService;
-            _logger = logger;
+            _db = db;
         }
 
-        /// <summary>
-        ///		Retroune une liste de fonctions d'opérateur d'un supermarché
-        ///	</summary>
-        /// <returns>Liste de fonctions d'opérateur d'un supermarché</returns>
-        [Route("GetAll")]
         [HttpGet]
-        public async Task<List<SupermarketStock>> GetAll()
+        public async Task<IActionResult> Get()
         {
-            List<SupermarketStock> result = null;
+            var data = await _db.SUPERMARKET_STOCK.ToListAsync();
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.GetAll();
-            watch.Stop();
+            List<SupermarketStock> result = SupermarketStockMapper.ConvertToSupermarketStockList(data);
 
-            _logger.LogInformation("SupermarketStock/GetAll/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Retroune un fonction d'opérateur d'un supermarché en fonction de son id
-        ///	</summary>
-        ///	<param name="id">Identifiant du fonction d'opérateur d'un supermarché</param>
-        /// <returns>Le fonction d'opérateur d'un supermarché</returns>
-        [Route("Get/{id}")]
-        [HttpGet]
-        public async Task<SupermarketStock> Get(int id)
+        [HttpGet("{id}")]
+        public async Task<IActionResult> Get(int id)
         {
-            SupermarketStock result = null;
+            var data = await _db.SUPERMARKET_STOCK.FirstOrDefaultAsync(n => n.SUPERMARKET_STOCK_ID == id);
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Get(id);
-            watch.Stop();
+            SupermarketStock result = SupermarketStockMapper.ConvertToSupermarketStock(data);
 
-            _logger.LogInformation("SupermarketStock/Get/" + id + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Création du fonction d'opérateur d'un supermarché
-        ///	</summary>
-        ///	<param name="supermarketStock">Fonction d'opérateur d'un supermarché</param>
-        /// <returns>Le fonction d'opérateur d'un supermarché créé</returns>
-        [Route("Add")]
         [HttpPost]
-        public async Task<SupermarketStock> Add(SupermarketStock supermarketStock)
+        public async Task<IActionResult> Post(SupermarketStock supermarketStock)
         {
-            SupermarketStock result = null;
+            SUPERMARKET_STOCK data = SupermarketStockMapper.ConvertToSUPERMARKET_STOCK(supermarketStock);
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Add(supermarketStock);
-            watch.Stop();
+            var res = _db.SUPERMARKET_STOCK.Add(data);
+            await _db.SaveChangesAsync();
 
-            _logger.LogInformation("SupermarketStock/Add/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
+            SupermarketStock result = SupermarketStockMapper.ConvertToSupermarketStock(res.Entity);
 
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Modification d'un fonction d'opérateur d'un supermarché
-        ///	</summary>
-        ///	<param name="supermarketStock">Fonction d'opérateur d'un supermarché</param>
-        /// <returns>Le fonction d'opérateur d'un supermarché modifié</returns>
-        [Route("Update")]
         [HttpPut]
-        public async Task<SupermarketStock> Update(SupermarketStock supermarketStock)
+        public async Task<IActionResult> Put(int id, SupermarketStock supermarketStock)
         {
-            SupermarketStock result = null;
+            var existingSupermarketStock = await _db.SUPERMARKET_STOCK.FirstOrDefaultAsync(n => n.SUPERMARKET_STOCK_ID == id);
+            existingSupermarketStock.SUPERMARKET_ID = (supermarketStock.SupermarketId > 0) ? supermarketStock.SupermarketId : existingSupermarketStock.SUPERMARKET_ID;
+            var success = (await _db.SaveChangesAsync()) > 0;
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Update(supermarketStock);
-            watch.Stop();
-
-            _logger.LogInformation("SupermarketStock/Update/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(success);
         }
 
-        /// <summary>
-        ///		Supprime un fonction d'opérateur d'un supermarché
-        ///	</summary>
-        ///	<param name="id">Identifiant du fonction d'opérateur d'un supermarché</param>
-        /// <returns>1 si le fonction d'opérateur d'un supermarché est supprimé</returns>
-        [Route("Delete")]
         [HttpDelete]
-        public async Task<int> Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            int result = 0;
+            var supermarketStock = await _db.SUPERMARKET_STOCK.FirstOrDefaultAsync(n => n.SUPERMARKET_STOCK_ID == id);
+            _db.Remove(supermarketStock);
+            var success = (await _db.SaveChangesAsync()) > 0;
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Delete(id);
-            watch.Stop();
-
-            _logger.LogInformation("SupermarketStock/Delete/" + id + " |result : " + result.ToString() + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(success);
         }
     }
 }

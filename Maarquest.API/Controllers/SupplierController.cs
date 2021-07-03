@@ -1,122 +1,83 @@
-﻿using Maarquest.Logic.Interfaces;
-using Maarquest.Logic.Models;
+﻿// Controllers/SupplierController.cs
+
+using Maarquest.API.Data;
+using Maarquest.API.Mappers;
+using Maarquest.API.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Maarquest.API.Controllers
+namespace DockerSqlServer.Controllers
 {
-    [Route("[controller]")]
     [ApiController]
-    public class SupplierController : ControllerBase
+    [Route("[controller]")]
+    public class SupplierController
     {
-        private ISupplierService _supplierService;
-        private ILogger<SupplierController> _logger;
+        private readonly MaarquestContext _db;
 
-        public SupplierController(ISupplierService SupplierService, ILogger<SupplierController> logger)
+        public SupplierController(MaarquestContext db)
         {
-            _supplierService = SupplierService;
-            _logger = logger;
+            _db = db;
         }
 
-        /// <summary>
-        ///		Retroune une liste de fournisseurs
-        ///	</summary>
-        /// <returns>Liste de fournisseurs</returns>
-        [Route("GetAll")]
         [HttpGet]
-        public async Task<List<Supplier>> GetAll()
+        public async Task<IActionResult> Get()
         {
-            List<Supplier> result = null;
+            var data = await _db.SUPPLIER.ToListAsync();
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _supplierService.GetAll();
-            watch.Stop();
+            List<Supplier> result = SupplierMapper.ConvertToSupplierList(data);
 
-            _logger.LogInformation("Supplier/GetAll/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Retroune un fournisseur en fonction de son id
-        ///	</summary>
-        ///	<param name="id">Identifiant du fournisseur</param>
-        /// <returns>Le fournisseur</returns>
-        [Route("Get/{id}")]
-        [HttpGet]
-        public async Task<Supplier> Get(int id)
+        [HttpGet("{id}")]
+        public async Task<IActionResult> Get(int id)
         {
-            Supplier result = null;
+            var data = await _db.SUPPLIER.FirstOrDefaultAsync(n => n.SUPPLIER_ID == id);
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _supplierService.Get(id);
-            watch.Stop();
+            Supplier result = SupplierMapper.ConvertToSupplier(data);
 
-            _logger.LogInformation("Supplier/Get/" + id + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Création d'un fournisseur
-        ///	</summary>
-        ///	<param name="supplier">fournisseur</param>
-        /// <returns>Le fournisseur créé</returns>
-        [Route("Add")]
         [HttpPost]
-        public async Task<Supplier> Add(Supplier supplier)
+        public async Task<IActionResult> Post(Supplier supplier)
         {
-            Supplier result = null;
+            SUPPLIER data = SupplierMapper.ConvertToSUPPLIER(supplier);
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _supplierService.Add(supplier);
-            watch.Stop();
+            var res = _db.SUPPLIER.Add(data);
+            await _db.SaveChangesAsync();
 
-            _logger.LogInformation("Supplier/Add/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
+            Supplier result = SupplierMapper.ConvertToSupplier(res.Entity);
 
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Modification d'un fournisseur
-        ///	</summary>
-        ///	<param name="supplier">fournisseur</param>
-        /// <returns>Le fournisseur modifié</returns>
-        [Route("Update")]
         [HttpPut]
-        public async Task<Supplier> Update(Supplier supplier)
+        public async Task<IActionResult> Put(int id, Supplier Supplier)
         {
-            Supplier result = null;
+            var existingSupplier = await _db.SUPPLIER.FirstOrDefaultAsync(n => n.SUPPLIER_ID == id);
+            existingSupplier.ADDRESS_ID = (Supplier.AddressId != null) ? Supplier.AddressId : existingSupplier.ADDRESS_ID;
+            existingSupplier.COMPANY_NAME = (Supplier.CompanyName > 0) ? Supplier.CompanyName : existingSupplier.COMPANY_NAME;
+            existingSupplier.COMPANY_SIGN = (Supplier.CompanySign != null) ? Supplier.CompanySign : existingSupplier.COMPANY_SIGN;
+            existingSupplier.SIRET = (Supplier.Siret != null) ? Supplier.Siret : existingSupplier.SIRET;
+            existingSupplier.TEL = (Supplier.Tel != null) ? Supplier.Tel : existingSupplier.TEL;
+            existingSupplier.FAX = (Supplier.Fax != null) ? Supplier.Fax : existingSupplier.FAX;
+            existingSupplier.IS_READY = (Supplier.IsReady != null) ? Supplier.IsReady : existingSupplier.IS_READY;
+            var success = (await _db.SaveChangesAsync()) > 0;
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _supplierService.Update(supplier);
-            watch.Stop();
-
-            _logger.LogInformation("Supplier/Update/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(success);
         }
 
-        /// <summary>
-        ///		Retroune une liste de fournisseurs
-        ///	</summary>
-        ///	<param name="id">Identifiant du fournisseur</param>
-        /// <returns>1 si le fournisseur est supprimé</returns>
-        [Route("Delete")]
         [HttpDelete]
-        public async Task<int> Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            int result = 0;
+            var supplier = await _db.SUPPLIER.FirstOrDefaultAsync(n => n.SUPPLIER_ID == id);
+            _db.Remove(supplier);
+            var success = (await _db.SaveChangesAsync()) > 0;
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _supplierService.Delete(id);
-            watch.Stop();
-
-            _logger.LogInformation("Supplier/Delete/" + id + " |result : " + result.ToString() + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(success);
         }
     }
 }

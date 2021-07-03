@@ -1,122 +1,78 @@
-﻿using Maarquest.Logic.Interfaces;
-using Maarquest.Logic.Models;
+﻿// Controllers/TransportMeanController.cs
+
+using Maarquest.API.Data;
+using Maarquest.API.Mappers;
+using Maarquest.API.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Maarquest.API.Controllers
+namespace DockerSqlServer.Controllers
 {
-    [Route("[controller]")]
     [ApiController]
-    public class TransportMeanController : ControllerBase
+    [Route("[controller]")]
+    public class TransportMeanController
     {
-        private ITransportMeanService _transportMeanService;
-        private ILogger<TransportMeanController> _logger;
+        private readonly MaarquestContext _db;
 
-        public TransportMeanController(ITransportMeanService TransportMeanService, ILogger<TransportMeanController> logger)
+        public TransportMeanController(MaarquestContext db)
         {
-            _transportMeanService = TransportMeanService;
-            _logger = logger;
+            _db = db;
         }
 
-        /// <summary>
-        ///		Retroune une liste de moyens de transport
-        ///	</summary>
-        /// <returns>Liste de moyens de transport</returns>
-        [Route("GetAll")]
         [HttpGet]
-        public async Task<List<TransportMean>> GetAll()
+        public async Task<IActionResult> Get()
         {
-            List<TransportMean> result = null;
+            var data = await _db.TRANSPORT_MEAN.ToListAsync();
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _transportMeanService.GetAll();
-            watch.Stop();
+            List<TransportMean> result = TransportMeanMapper.ConvertToTransportMeanList(data);
 
-            _logger.LogInformation("TransportMean/GetAll/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Retroune un moyen de transport en fonction de son id
-        ///	</summary>
-        ///	<param name="id">Identifiant du moyen de transport</param>
-        /// <returns>Le moyen de transport</returns>
-        [Route("Get/{id}")]
-        [HttpGet]
-        public async Task<TransportMean> Get(int id)
+        [HttpGet("{id}")]
+        public async Task<IActionResult> Get(int id)
         {
-            TransportMean result = null;
+            var data = await _db.TRANSPORT_MEAN.FirstOrDefaultAsync(n => n.TRANSPORT_MEAN_ID == id);
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _transportMeanService.Get(id);
-            watch.Stop();
+            TransportMean result = TransportMeanMapper.ConvertToTransportMean(data);
 
-            _logger.LogInformation("TransportMean/Get/" + id + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Création d'un moyen de transport
-        ///	</summary>
-        ///	<param name="transportMean">moyen de transport</param>
-        /// <returns>Le moyen de transport a été créé</returns>
-        [Route("Add")]
         [HttpPost]
-        public async Task<TransportMean> Add(TransportMean transportMean)
+        public async Task<IActionResult> Post(TransportMean transportMean)
         {
-            TransportMean result = null;
+            TRANSPORT_MEAN data = TransportMeanMapper.ConvertToTRANSPORT_MEAN(transportMean);
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _transportMeanService.Add(transportMean);
-            watch.Stop();
+            var res = _db.TRANSPORT_MEAN.Add(data);
+            await _db.SaveChangesAsync();
 
-            _logger.LogInformation("TransportMean/Add/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
+            TransportMean result = TransportMeanMapper.ConvertToTransportMean(res.Entity);
 
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Modification d'un moyen de transport
-        ///	</summary>
-        ///	<param name="transportMean">moyen de transport</param>
-        /// <returns>Le moyen de transport a été modifié</returns>
-        [Route("Update")]
         [HttpPut]
-        public async Task<TransportMean> Update(TransportMean transportMean)
+        public async Task<IActionResult> Put(int id, TransportMean transportMean)
         {
-            TransportMean result = null;
+            var existingTransportMean = await _db.TRANSPORT_MEAN.FirstOrDefaultAsync(n => n.TRANSPORT_MEAN_ID == id);
+            existingTransportMean.LABEL = (transportMean.Label != null) ? transportMean.Label : existingTransportMean.LABEL;
+            existingTransportMean.CARBON_FOOTPRINT = (transportMean.CarbonFootprint > 0) ? transportMean.CarbonFootprint : existingTransportMean.CARBON_FOOTPRINT;
+            var success = (await _db.SaveChangesAsync()) > 0;
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _transportMeanService.Update(transportMean);
-            watch.Stop();
-
-            _logger.LogInformation("TransportMean/Update/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(success);
         }
 
-        /// <summary>
-        ///		Retroune une liste de moyens de transport
-        ///	</summary>
-        ///	<param name="id">Identifiant du moyen de transport</param>
-        /// <returns>1 si le moyen de transport est supprimé</returns>
-        [Route("Delete")]
         [HttpDelete]
-        public async Task<int> Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            int result = 0;
+            var transportMean = await _db.TRANSPORT_MEAN.FirstOrDefaultAsync(n => n.TRANSPORT_MEAN_ID == id);
+            _db.Remove(transportMean);
+            var success = (await _db.SaveChangesAsync()) > 0;
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _transportMeanService.Delete(id);
-            watch.Stop();
-
-            _logger.LogInformation("TransportMean/Delete/" + id + " |result : " + result.ToString() + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(success);
         }
     }
 }

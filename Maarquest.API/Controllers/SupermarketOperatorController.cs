@@ -1,122 +1,86 @@
-﻿using Maarquest.Logic.Interfaces;
-using Maarquest.Logic.Models;
+﻿// Controllers/SupermarketOperatorController.cs
+
+using Maarquest.API.Data;
+using Maarquest.API.Mappers;
+using Maarquest.API.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Maarquest.API.Controllers
+namespace DockerSqlServer.Controllers
 {
-    [Route("[controller]")]
     [ApiController]
-    public class SupermarketOperatorController : ControllerBase
+    [Route("[controller]")]
+    public class SupermarketOperatorController
     {
-        private ISupermarketOperatorService _adressService;
-        private ILogger<SupermarketOperatorController> _logger;
+        private readonly MaarquestContext _db;
 
-        public SupermarketOperatorController(ISupermarketOperatorService supermarketOperatorService, ILogger<SupermarketOperatorController> logger)
+        public SupermarketOperatorController(MaarquestContext db)
         {
-            _adressService = supermarketOperatorService;
-            _logger = logger;
+            _db = db;
         }
 
-        /// <summary>
-        ///		Retroune une liste de fonctions d'opérateur d'un supermarché
-        ///	</summary>
-        /// <returns>Liste de fonctions d'opérateur d'un supermarché</returns>
-        [Route("GetAll")]
         [HttpGet]
-        public async Task<List<SupermarketOperator>> GetAll()
+        public async Task<IActionResult> Get()
         {
-            List<SupermarketOperator> result = null;
+            var data = await _db.SUPERMARKET_OPERATOR.ToListAsync();
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.GetAll();
-            watch.Stop();
+            List<SupermarketOperator> result = SupermarketOperatorMapper.ConvertToSupermarketOperatorList(data);
 
-            _logger.LogInformation("SupermarketOperator/GetAll/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Retroune un fonction d'opérateur d'un supermarché en fonction de son id
-        ///	</summary>
-        ///	<param name="id">Identifiant du fonction d'opérateur d'un supermarché</param>
-        /// <returns>Le fonction d'opérateur d'un supermarché</returns>
-        [Route("Get/{id}")]
-        [HttpGet]
-        public async Task<SupermarketOperator> Get(int id)
+        [HttpGet("{id}")]
+        public async Task<IActionResult> Get(int id)
         {
-            SupermarketOperator result = null;
+            var data = await _db.SUPERMARKET_OPERATOR.FirstOrDefaultAsync(n => n.SUPERMARKET_OPERATOR_ID == id);
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Get(id);
-            watch.Stop();
+            SupermarketOperator result = SupermarketOperatorMapper.ConvertToSupermarketOperator(data);
 
-            _logger.LogInformation("SupermarketOperator/Get/" + id + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Création du fonction d'opérateur d'un supermarché
-        ///	</summary>
-        ///	<param name="supermarketOperator">Fonction d'opérateur d'un supermarché</param>
-        /// <returns>Le fonction d'opérateur d'un supermarché créé</returns>
-        [Route("Add")]
         [HttpPost]
-        public async Task<SupermarketOperator> Add(SupermarketOperator supermarketOperator)
+        public async Task<IActionResult> Post(SupermarketOperator supermarketOperator)
         {
-            SupermarketOperator result = null;
+            SUPERMARKET_OPERATOR data = SupermarketOperatorMapper.ConvertToSUPERMARKET_OPERATOR(supermarketOperator);
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Add(supermarketOperator);
-            watch.Stop();
+            var res = _db.SUPERMARKET_OPERATOR.Add(data);
+            await _db.SaveChangesAsync();
 
-            _logger.LogInformation("SupermarketOperator/Add/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
+            SupermarketOperator result = SupermarketOperatorMapper.ConvertToSupermarketOperator(res.Entity);
 
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Modification d'un fonction d'opérateur d'un supermarché
-        ///	</summary>
-        ///	<param name="supermarketOperator">Fonction d'opérateur d'un supermarché</param>
-        /// <returns>Le fonction d'opérateur d'un supermarché modifié</returns>
-        [Route("Update")]
         [HttpPut]
-        public async Task<SupermarketOperator> Update(SupermarketOperator supermarketOperator)
+        public async Task<IActionResult> Put(int id, SupermarketOperator supermarketOperator)
         {
-            SupermarketOperator result = null;
+            var existingSupermarketOperator = await _db.SUPERMARKET_OPERATOR.FirstOrDefaultAsync(n => n.SUPERMARKET_OPERATOR_ID == id);
+            existingSupermarketOperator.SUPERMARKET_ID = (supermarketOperator.SupermarketId != null) ? supermarketOperator.SupermarketId : existingSupermarketOperator.SUPERMARKET_ID;
+            existingSupermarketOperator.SUPERMARKET_OPERATOR_FUNCTION_ID = (supermarketOperator.SupermarketOperatorFunctionId > 0) ? supermarketOperator.SupermarketOperatorFunctionId : existingSupermarketOperator.SUPERMARKET_OPERATOR_FUNCTION_ID;
+            existingSupermarketOperator.FIRSTNAME= (supermarketOperator.Firstname != null) ? supermarketOperator.Firstname : existingSupermarketOperator.FIRSTNAME;
+            existingSupermarketOperator.LASTNAME = (supermarketOperator.Lastname != null) ? supermarketOperator.Lastname : existingSupermarketOperator.LASTNAME;
+            existingSupermarketOperator.USERNAME = (supermarketOperator.Username != null) ? supermarketOperator.Username : existingSupermarketOperator.USERNAME;
+            existingSupermarketOperator.MAIL = (supermarketOperator.Mail != null) ? supermarketOperator.Mail : existingSupermarketOperator.MAIL;
+            existingSupermarketOperator.PASSWORD = (supermarketOperator.Password != null) ? supermarketOperator.Password : existingSupermarketOperator.PASSWORD;
+            existingSupermarketOperator.BIRTHDATE = (supermarketOperator.Birthdate != null) ? supermarketOperator.Birthdate : existingSupermarketOperator.BIRTDATE;
+            existingSupermarketOperator.GENDER = (supermarketOperator.Gender != null) ? supermarketOperator.Gender : existingSupermarketOperator.GENDER;
+            existingSupermarketOperator.TEL = (supermarketOperator.Tel != null) ? supermarketOperator.Tel : existingSupermarketOperator.TEL;
+            var success = (await _db.SaveChangesAsync()) > 0;
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Update(supermarketOperator);
-            watch.Stop();
-
-            _logger.LogInformation("SupermarketOperator/Update/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(success);
         }
 
-        /// <summary>
-        ///		Supprime un fonction d'opérateur d'un supermarché
-        ///	</summary>
-        ///	<param name="id">Identifiant du fonction d'opérateur d'un supermarché</param>
-        /// <returns>1 si le fonction d'opérateur d'un supermarché est supprimé</returns>
-        [Route("Delete")]
         [HttpDelete]
-        public async Task<int> Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            int result = 0;
+            var supermarketOperator = await _db.SUPERMARKET_OPERATOR.FirstOrDefaultAsync(n => n.SUPERMARKET_OPERATOR_ID == id);
+            _db.Remove(supermarketOperator);
+            var success = (await _db.SaveChangesAsync()) > 0;
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Delete(id);
-            watch.Stop();
-
-            _logger.LogInformation("SupermarketOperator/Delete/" + id + " |result : " + result.ToString() + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(success);
         }
     }
 }

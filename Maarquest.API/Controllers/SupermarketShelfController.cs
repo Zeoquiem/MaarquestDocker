@@ -1,122 +1,78 @@
-﻿using Maarquest.Logic.Interfaces;
-using Maarquest.Logic.Models;
+﻿// Controllers/SupermarketShelfController.cs
+
+using Maarquest.API.Data;
+using Maarquest.API.Mappers;
+using Maarquest.API.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Maarquest.API.Controllers
+namespace DockerSqlServer.Controllers
 {
-    [Route("[controller]")]
     [ApiController]
-    public class SupermarketShelfController : ControllerBase
+    [Route("[controller]")]
+    public class SupermarketShelfController
     {
-        private ISupermarketShelfService _adressService;
-        private ILogger<SupermarketShelfController> _logger;
+        private readonly MaarquestContext _db;
 
-        public SupermarketShelfController(ISupermarketShelfService supermarketShelfService, ILogger<SupermarketShelfController> logger)
+        public SupermarketShelfController(MaarquestContext db)
         {
-            _adressService = supermarketShelfService;
-            _logger = logger;
+            _db = db;
         }
 
-        /// <summary>
-        ///		Retroune une liste de fonctions d'opérateur d'un supermarché
-        ///	</summary>
-        /// <returns>Liste de fonctions d'opérateur d'un supermarché</returns>
-        [Route("GetAll")]
         [HttpGet]
-        public async Task<List<SupermarketShelf>> GetAll()
+        public async Task<IActionResult> Get()
         {
-            List<SupermarketShelf> result = null;
+            var data = await _db.SUPERMARKET_SHELF.ToListAsync();
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.GetAll();
-            watch.Stop();
+            List<SupermarketShelf> result = SupermarketShelfMapper.ConvertToSupermarketShelfList(data);
 
-            _logger.LogInformation("SupermarketShelf/GetAll/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Retroune un fonction d'opérateur d'un supermarché en fonction de son id
-        ///	</summary>
-        ///	<param name="id">Identifiant du fonction d'opérateur d'un supermarché</param>
-        /// <returns>Le fonction d'opérateur d'un supermarché</returns>
-        [Route("Get/{id}")]
-        [HttpGet]
-        public async Task<SupermarketShelf> Get(int id)
+        [HttpGet("{id}")]
+        public async Task<IActionResult> Get(int id)
         {
-            SupermarketShelf result = null;
+            var data = await _db.SUPERMARKET_SHELF.FirstOrDefaultAsync(n => n.SUPERMARKET_SHELF_ID == id);
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Get(id);
-            watch.Stop();
+            SupermarketShelf result = SupermarketShelfMapper.ConvertToSupermarketShelf(data);
 
-            _logger.LogInformation("SupermarketShelf/Get/" + id + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Création du fonction d'opérateur d'un supermarché
-        ///	</summary>
-        ///	<param name="supermarketShelf">Fonction d'opérateur d'un supermarché</param>
-        /// <returns>Le fonction d'opérateur d'un supermarché créé</returns>
-        [Route("Add")]
         [HttpPost]
-        public async Task<SupermarketShelf> Add(SupermarketShelf supermarketShelf)
+        public async Task<IActionResult> Post(SupermarketShelf supermarketShelf)
         {
-            SupermarketShelf result = null;
+            SUPERMARKET_SHELF data = SupermarketShelfMapper.ConvertToSUPERMARKET_SHELF(supermarketShelf);
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Add(supermarketShelf);
-            watch.Stop();
+            var res = _db.SUPERMARKET_SHELF.Add(data);
+            await _db.SaveChangesAsync();
 
-            _logger.LogInformation("SupermarketShelf/Add/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
+            SupermarketShelf result = SupermarketShelfMapper.ConvertToSupermarketShelf(res.Entity);
 
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Modification d'un fonction d'opérateur d'un supermarché
-        ///	</summary>
-        ///	<param name="supermarketShelf">Fonction d'opérateur d'un supermarché</param>
-        /// <returns>Le fonction d'opérateur d'un supermarché modifié</returns>
-        [Route("Update")]
         [HttpPut]
-        public async Task<SupermarketShelf> Update(SupermarketShelf supermarketShelf)
+        public async Task<IActionResult> Put(int id, SupermarketShelf supermarketShelf)
         {
-            SupermarketShelf result = null;
+            var existingSupermarketShelf = await _db.SUPERMARKET_SHELF.FirstOrDefaultAsync(n => n.SUPERMARKET_SHELF_ID == id);
+            existingSupermarketShelf.SUPERMARKET_ID = (supermarketShelf.SupermarketId > 0) ? supermarketShelf.SupermarketId : existingSupermarketShelf.SUPERMARKET_ID;
+            existingSupermarketShelf.PRODUCT_CATEGORY_ID = (supermarketShelf.ProductCategoryId > 0) ? supermarketShelf.ProductCategoryId : existingSupermarketShelf.PRODUCT_CATEGORY_ID;
+            var success = (await _db.SaveChangesAsync()) > 0;
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Update(supermarketShelf);
-            watch.Stop();
-
-            _logger.LogInformation("SupermarketShelf/Update/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(success);
         }
 
-        /// <summary>
-        ///		Supprime un fonction d'opérateur d'un supermarché
-        ///	</summary>
-        ///	<param name="id">Identifiant du fonction d'opérateur d'un supermarché</param>
-        /// <returns>1 si le fonction d'opérateur d'un supermarché est supprimé</returns>
-        [Route("Delete")]
         [HttpDelete]
-        public async Task<int> Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            int result = 0;
+            var supermarketShelf = await _db.SUPERMARKET_SHELF.FirstOrDefaultAsync(n => n.SUPERMARKET_SHELF_ID == id);
+            _db.Remove(supermarketShelf);
+            var success = (await _db.SaveChangesAsync()) > 0;
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Delete(id);
-            watch.Stop();
-
-            _logger.LogInformation("SupermarketShelf/Delete/" + id + " |result : " + result.ToString() + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(success);
         }
     }
 }

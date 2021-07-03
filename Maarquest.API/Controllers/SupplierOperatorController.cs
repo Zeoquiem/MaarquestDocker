@@ -1,143 +1,86 @@
-﻿using Maarquest.Logic.Interfaces;
-using Maarquest.Logic.Models;
+﻿// Controllers/SupplierOperatorController.cs
+
+using Maarquest.API.Data;
+using Maarquest.API.Mappers;
+using Maarquest.API.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Maarquest.API.Controllers
+namespace DockerSqlServer.Controllers
 {
-    [Route("[controller]")]
     [ApiController]
-    public class SupplierOperatorController : ControllerBase
+    [Route("[controller]")]
+    public class SupplierOperatorController
     {
-        private ISupplierOperatorService _adressService;
-        private ILogger<SupplierOperatorController> _logger;
+        private readonly MaarquestContext _db;
 
-        public SupplierOperatorController(ISupplierOperatorService supplierOperatorService, ILogger<SupplierOperatorController> logger)
+        public SupplierOperatorController(MaarquestContext db)
         {
-            _adressService = supplierOperatorService;
-            _logger = logger;
+            _db = db;
         }
 
-        /// <summary>
-        ///		Retroune une liste de fonctions d'opérateur d'un supermarché
-        ///	</summary>
-        /// <returns>Liste de fonctions d'opérateur d'un supermarché</returns>
-        [Route("GetAll")]
         [HttpGet]
-        public async Task<List<SupplierOperator>> GetAll()
+        public async Task<IActionResult> Get()
         {
-            List<SupplierOperator> result = null;
+            var data = await _db.SUPPLIER_OPERATOR.ToListAsync();
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.GetAll();
-            watch.Stop();
+            List<SupplierOperator> result = SupplierOperatorMapper.ConvertToSupplierOperatorList(data);
 
-            _logger.LogInformation("SupplierOperator/GetAll/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Retroune un fonction d'opérateur d'un supermarché en fonction de son id
-        ///	</summary>
-        ///	<param name="id">Identifiant du fonction d'opérateur d'un supermarché</param>
-        /// <returns>Le fonction d'opérateur d'un supermarché</returns>
-        [Route("Get/{id}")]
-        [HttpGet]
-        public async Task<SupplierOperator> Get(int id)
+        [HttpGet("{id}")]
+        public async Task<IActionResult> Get(int id)
         {
-            SupplierOperator result = null;
+            var data = await _db.SUPPLIER_OPERATOR.FirstOrDefaultAsync(n => n.SUPPLIER_OPERATOR_ID == id);
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Get(id);
-            watch.Stop();
+            SupplierOperator result = SupplierOperatorMapper.ConvertToSupplierOperator(data);
 
-            _logger.LogInformation("SupplierOperator/Get/" + id + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Retroune un fonction d'opérateur d'un supermarché en fonction de son id
-        ///	</summary>
-        ///	<param name="username">Nom d'utilisateur du fonction d'opérateur d'un supermarché</param>
-        ///	<param name="password">Nom d'utilisateur du fonction d'opérateur d'un supermarché</param>
-        /// <returns>Le fonction d'opérateur d'un supermarché</returns>
-        [Route("GetByLogIn")]
-        [HttpGet]
-        public async Task<SupplierOperator> GetByLogIn(string username, string password)
-        {
-            SupplierOperator result = null;
-
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.GetByLogIn(username, password);
-            watch.Stop();
-
-            _logger.LogInformation("SupplierOperator/GetByLogIn/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
-        }
-
-        /// <summary>
-        ///		Création du fonction d'opérateur d'un supermarché
-        ///	</summary>
-        ///	<param name="supplierOperator">Fonction d'opérateur d'un supermarché</param>
-        /// <returns>Le fonction d'opérateur d'un supermarché créé</returns>
-        [Route("Add")]
         [HttpPost]
-        public async Task<SupplierOperator> Add(SupplierOperator supplierOperator)
+        public async Task<IActionResult> Post(SupplierOperator supplierOperator)
         {
-            SupplierOperator result = null;
+            SUPPLIER_OPERATOR data = SupplierOperatorMapper.ConvertToSUPPLIER_OPERATOR(supplierOperator);
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Add(supplierOperator);
-            watch.Stop();
+            var res = _db.SUPPLIER_OPERATOR.Add(data);
+            await _db.SaveChangesAsync();
 
-            _logger.LogInformation("SupplierOperator/Add/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
+            SupplierOperator result = SupplierOperatorMapper.ConvertToSupplierOperator(res.Entity);
 
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Modification d'un fonction d'opérateur d'un supermarché
-        ///	</summary>
-        ///	<param name="supplierOperator">Fonction d'opérateur d'un supermarché</param>
-        /// <returns>Le fonction d'opérateur d'un supermarché modifié</returns>
-        [Route("Update")]
         [HttpPut]
-        public async Task<SupplierOperator> Update(SupplierOperator supplierOperator)
+        public async Task<IActionResult> Put(int id, SupplierOperator supplierOperator)
         {
-            SupplierOperator result = null;
+            var existingSupplierOperator = await _db.SUPPLIER_OPERATOR.FirstOrDefaultAsync(n => n.SUPPLIER_OPERATOR_ID == id);
+           existingSupplierOperator.SUPPLIER_ID = (supplierOperator.SupplierId != null) ? supplierOperator.SupplierId : existingSupplierOperator.SUPPLIER_ID;
+            existingSupplierOperator.SUPPLIER_OPERATOR_FUNCTION_ID = (supplierOperator.SupplierOperatorFunctionId > 0) ? supplierOperator.SupplierOperatorFunctionId : existingSupplierOperator.SUPPLIER_OPERATOR_FUNCTION_ID;
+            existingSupplierOperator.FIRSTNAME= (supplierOperator.Firstname != null) ? supplierOperator.Firstname : existingSupplierOperator.FIRSTNAME;
+            existingSupplierOperator.LASTNAME = (supplierOperator.Lastname != null) ? supplierOperator.Lastname : existingSupplierOperator.LASTNAME;
+            existingSupplierOperator.USERNAME = (supplierOperator.Username != null) ? supplierOperator.Username : existingSupplierOperator.USERNAME;
+            existingSupplierOperator.MAIL = (supplierOperator.Mail != null) ? supplierOperator.Mail : existingSupplierOperator.MAIL;
+            existingSupplierOperator.PASSWORD = (supplierOperator.Password != null) ? supplierOperator.Password : existingSupplierOperator.PASSWORD;
+            existingSupplierOperator.BIRTHDATE = (supplierOperator.Birthdate != null) ? supplierOperator.Birthdate : existingSupplierOperator.BIRTDATE;
+            existingSupplierOperator.GENDER = (supplierOperator.Gender != null) ? supplierOperator.Gender : existingSupplierOperator.GENDER;
+            existingSupplierOperator.TEL = (supplierOperator.Tel != null) ? supplierOperator.Tel : existingSupplierOperator.TEL;
+            var success = (await _db.SaveChangesAsync()) > 0;
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Update(supplierOperator);
-            watch.Stop();
-
-            _logger.LogInformation("SupplierOperator/Update/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(success);
         }
 
-        /// <summary>
-        ///		Supprime un fonction d'opérateur d'un supermarché
-        ///	</summary>
-        ///	<param name="id">Identifiant du fonction d'opérateur d'un supermarché</param>
-        /// <returns>1 si le fonction d'opérateur d'un supermarché est supprimé</returns>
-        [Route("Delete")]
         [HttpDelete]
-        public async Task<int> Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            int result = 0;
+            var supplierOperator = await _db.SUPPLIER_OPERATOR.FirstOrDefaultAsync(n => n.SUPPLIER_OPERATOR_ID == id);
+            _db.Remove(supplierOperator);
+            var success = (await _db.SaveChangesAsync()) > 0;
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Delete(id);
-            watch.Stop();
-
-            _logger.LogInformation("SupplierOperator/Delete/" + id + " |result : " + result.ToString() + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(success);
         }
     }
 }
