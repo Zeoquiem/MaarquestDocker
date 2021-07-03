@@ -1,122 +1,78 @@
-﻿using Maarquest.Logic.Interfaces;
-using Maarquest.Logic.Models;
+﻿// Controllers/PromotionPackController.cs
+
+using Maarquest.API.Data;
+using Maarquest.API.Mappers;
+using Maarquest.API.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Maarquest.API.Controllers
+namespace DockerSqlServer.Controllers
 {
-    [Route("[controller]")]
     [ApiController]
-    public class PromotionPackController : ControllerBase
+    [Route("[controller]")]
+    public class PromotionPackController
     {
-        private IPromotionPackService _adressService;
-        private ILogger<PromotionPackController> _logger;
+        private readonly MaarquestContext _db;
 
-        public PromotionPackController(IPromotionPackService promotionPackService, ILogger<PromotionPackController> logger)
+        public PromotionPackController(MaarquestContext db)
         {
-            _adressService = promotionPackService;
-            _logger = logger;
+            _db = db;
         }
 
-        /// <summary>
-        ///		Retroune une liste de packs de promotion
-        ///	</summary>
-        /// <returns>Liste de packs de promotion</returns>
-        [Route("GetAll")]
         [HttpGet]
-        public async Task<List<PromotionPack>> GetAll()
+        public async Task<IActionResult> Get()
         {
-            List<PromotionPack> result = null;
+            var data = await _db.PROMOTION_PACK.ToListAsync();
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.GetAll();
-            watch.Stop();
+            List<PromotionPack> result = PromotionPackMapper.ConvertToPromotionPackList(data);
 
-            _logger.LogInformation("PromotionPack/GetAll/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Retroune un pack de promotion en fonction de son id
-        ///	</summary>
-        ///	<param name="id">Identifiant du pack de promotion</param>
-        /// <returns>Le pack de promotion</returns>
-        [Route("Get/{id}")]
-        [HttpGet]
-        public async Task<PromotionPack> Get(int id)
+        [HttpGet("{id}")]
+        public async Task<IActionResult> Get(int id)
         {
-            PromotionPack result = null;
+            var data = await _db.PROMOTION_PACK.FirstOrDefaultAsync(n => n.PROMOTION_PACK_ID == id);
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Get(id);
-            watch.Stop();
+            PromotionPack result = PromotionPackMapper.ConvertToPromotionPack(data);
 
-            _logger.LogInformation("PromotionPack/Get/" + id + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Création du pack de promotion
-        ///	</summary>
-        ///	<param name="promotionPack">Pack de promotion</param>
-        /// <returns>Le pack de promotion créé</returns>
-        [Route("Add")]
         [HttpPost]
-        public async Task<PromotionPack> Add(PromotionPack promotionPack)
+        public async Task<IActionResult> Post(PromotionPack promotionPack)
         {
-            PromotionPack result = null;
+            PROMOTION_PACK data = PromotionPackMapper.ConvertToPROMOTION_PACK(promotionPack);
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Add(promotionPack);
-            watch.Stop();
+            var res = _db.PROMOTION_PACK.Add(data);
+            await _db.SaveChangesAsync();
 
-            _logger.LogInformation("PromotionPack/Add/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
+            PromotionPack result = PromotionPackMapper.ConvertToPromotionPack(res.Entity);
 
-            return result;
+            return new JsonResult(result);
         }
 
-        /// <summary>
-        ///		Modification d'un pack de promotion
-        ///	</summary>
-        ///	<param name="promotionPack">Pack de promotion</param>
-        /// <returns>Le pack de promotion modifié</returns>
-        [Route("Update")]
         [HttpPut]
-        public async Task<PromotionPack> Update(PromotionPack promotionPack)
+        public async Task<IActionResult> Put(int id, PromotionPack promotionPack)
         {
-            PromotionPack result = null;
+            var existingPromotionPack = await _db.PROMOTION_PACK.FirstOrDefaultAsync(n => n.PROMOTION_PACK_ID == id);
+            existingPromotionPack.LABEL = (promotionPack.Label != null) ? promotionPack.Label : existingPromotionPack.LABEL;
+            existingPromotionPack.PRODUCT_CATEGORY_ID = (promotionPack.ProductCategoryId > 0) ? promotionPack.ProductCategoryId : existingPromotionPack.PRODUCT_CATEGORY_ID;
+            var success = (await _db.SaveChangesAsync()) > 0;
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Update(promotionPack);
-            watch.Stop();
-
-            _logger.LogInformation("PromotionPack/Update/" + " |result : " + (result == null ? "null" : result.ToString()) + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(success);
         }
 
-        /// <summary>
-        ///		Supprime un pack de promotion
-        ///	</summary>
-        ///	<param name="id">Identifiant du pack de promotion</param>
-        /// <returns>1 si le pack de promotion est supprimé</returns>
-        [Route("Delete")]
         [HttpDelete]
-        public async Task<int> Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            int result = 0;
+            var promotionPack = await _db.PROMOTION_PACK.FirstOrDefaultAsync(n => n.PROMOTION_PACK_ID == id);
+            _db.Remove(promotionPack);
+            var success = (await _db.SaveChangesAsync()) > 0;
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            result = await _adressService.Delete(id);
-            watch.Stop();
-
-            _logger.LogInformation("PromotionPack/Delete/" + id + " |result : " + result.ToString() + "|duree :" + watch.ElapsedMilliseconds);
-
-            return result;
+            return new JsonResult(success);
         }
     }
 }

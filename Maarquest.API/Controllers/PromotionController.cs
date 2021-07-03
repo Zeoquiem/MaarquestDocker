@@ -59,7 +59,7 @@ namespace DockerSqlServer.Controllers
         {
             var existingPromotion = await _db.PROMOTION.FirstOrDefaultAsync(n => n.PROMOTION_ID == id);
             existingPromotion.PROMOTION_PACK_ID = (promotion.PromotionPackId > 0) ? promotion.PromotionPackId : existingPromotion.PROMOTION_PACK_ID;
-            existingPromotion.PROMOTION_TYPE_ID = (promotion.PromotionTypeId != null) ? promotion.PromotionTypeId : existingPromotion.PROMOTION_TYPE_ID;
+            existingPromotion.PROMOTION_TYPE_ID = (promotion.PromotionTypeId > 0) ? promotion.PromotionTypeId : existingPromotion.PROMOTION_TYPE_ID;
             existingPromotion.PRODUCT_TYPE_ID = (promotion.ProductTypeId > 0) ? promotion.ProductTypeId : existingPromotion.PRODUCT_TYPE_ID;
             var success = (await _db.SaveChangesAsync()) > 0;
 
