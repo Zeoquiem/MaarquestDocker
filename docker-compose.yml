@@ -6,6 +6,8 @@ services:
     environment:
       - ACCEPT_EULA=Y
       - SA_PASSWORD=p7M4rSzg5?
+    ports:
+      - 1433:1433 
 
   maarquest.api:
     image: ${DOCKER_REGISTRY-}maarquestapi
@@ -20,5 +22,7 @@ services:
     build:
       context: .
       dockerfile: Maarquest.WEB/Dockerfile
+    ports: 
+      - 8080:80
     depends_on:
       - maarquest.api

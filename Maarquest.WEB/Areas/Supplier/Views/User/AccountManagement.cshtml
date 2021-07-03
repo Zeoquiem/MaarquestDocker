@@ -1,0 +1,201 @@
+﻿@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Account Management";
+    //titre de page
+}
+
+
+@section Styles {
+    <!--Meta Responsive tag-->
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!--Favicon Icon-->
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <!--Bootstrap CSS-->
+    <link rel="stylesheet" href="assets/css/bootstrap.min.css">
+    <!--Custom style.css-->
+    <link rel="stylesheet" href="assets/css/quicksand.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <!--Font Awesome-->
+    <link rel="stylesheet" href="assets/css/fontawesome-all.min.css">
+    <link rel="stylesheet" href="assets/css/fontawesome.css">
+    <!--Animate CSS-->
+    <link rel="stylesheet" href="assets/css/animate.min.css">
+    <!--Chartist CSS-->
+    <link rel="stylesheet" href="assets/css/chartist.min.css">
+    <!--Map-->
+    <link rel="stylesheet" href="assets/css/jquery-jvectormap-2.0.2.css">
+    <!--Bootstrap Calendar-->
+    <link rel="stylesheet" href="assets/js/calendar/bootstrap_calendar.css">
+    <!--Nice select -->
+    <link rel="stylesheet" href="assets/css/nice-select.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+}
+
+<div class="col-sm-9 col-xs-12 content pt-3 pl-0">
+    <h5 class="mb-3"><strong>Account management</strong></h5>
+
+    <div class="row mt-3">
+        <div class="col-sm-12">
+
+
+            <!--Default bootstrap 4 validation-->
+            <div class="mt-1 mb-4 p-3 button-container bg-white border shadow-sm">
+                <h6 class="mb-2"><strong>Billing Address</strong></h6>
+
+
+                <form class="needs-validation" novalidate>
+                    <div class="form-row">
+                        <div class="col-md-4 mb-2">
+                            <label for="validationCustom01">Full name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="validationCustom01" placeholder="First name" value="Mark Otto" required>
+                            <div class="valid-feedback">
+                                Looks good!
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 mb-2">
+                            <label for="validationCustomUsername">Email <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text" id="inputGroupPrepend"></span>
+                                </div>
+                                <input type="text" class="form-control" id="validationCustomUsername" placeholder="Email" aria-describedby="inputGroupPrepend" required>
+                                <div class="invalid-feedback">
+                                    Please provide a valid Email.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="col-md-6 mb-2">
+                            <label for="validationCustom03">Billing Adress <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="validationCustom03" placeholder="Billing Adress" required>
+                            <div class="invalid-feedback">
+                                Please provide a adress.
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label for="validationCustom03">City <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="validationCustom03" placeholder="City" required>
+                            <div class="invalid-feedback">
+                                Please provide a valid city.
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <label for="validationCustom04">State <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="validationCustom04" placeholder="State" required>
+                            <div class="invalid-feedback">
+                                Please provide a valid state.
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <label for="validationCustom05">Zip <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="validationCustom05" placeholder="Zip" required>
+                            <div class="invalid-feedback">
+                                Please provide a valid zip.
+                            </div>
+                        </div>
+                    </div>
+                    <br>
+
+                    <h6 class="mb-2"><strong>Payment</strong></h6>
+                    <p class="mb-2">Accepted Cards</p>
+                    <div class="icon-container">
+                        <i class="fa fa-cc-visa" style="color:navy;"></i>
+                        <i class="fa fa-cc-amex" style="color:blue;"></i>
+                        <i class="fa fa-cc-mastercard" style="color:red;"></i>
+                        <i class="fa fa-cc-discover" style="color:orange;"></i>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="col-md-4 mb-2">
+                            <label for="validationCustom01">Name on the Card<span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="validationCustom01" placeholder="Mark Otto" value="" required>
+                            <div class="valid-feedback">
+                                Looks good!
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 mb-2">
+                            <label for="validationCustomNumber">Credit card number<span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="validationCustom01" placeholder="1111-2222-3333-4444" value="" required>
+                            <div class="valid-feedback">
+                                Looks good!
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="col-md-3 mb-2">
+                            <label for="validationCustom04">Exp Month <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="validationCustom04" placeholder="01/21" required>
+                            <div class="invalid-feedback">
+
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <label for="validationCustom05">CVV <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="validationCustom05" placeholder="252" required>
+                            <div class="invalid-feedback">
+
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" type="submit">Save</button>
+                </form>
+            </div>
+            <!--/Default bootstrap validation-->
+
+
+
+        </div>
+    </div>
+
+    
+
+</div>
+
+
+@section Scripts {
+    <!-- Page JavaScript Files-->
+    <script src="assets/js/jquery.min.js"></script>
+    <script src="assets/js/jquery-1.12.4.min.js"></script>
+    <!--Popper JS-->
+    <script src="assets/js/popper.min.js"></script>
+    <!--Bootstrap-->
+    <script src="assets/js/bootstrap.min.js"></script>
+    <!--Sweet alert JS-->
+    <script src="assets/js/sweetalert.js"></script>
+    <!--Progressbar JS-->
+    <script src="assets/js/progressbar.min.js"></script>
+    <!--Flot.JS-->
+    <script src="assets/js/charts/jquery.flot.min.js"></script>
+    <script src="assets/js/charts/jquery.flot.pie.min.js"></script>
+    <script src="assets/js/charts/jquery.flot.categories.min.js"></script>
+    <script src="assets/js/charts/jquery.flot.stack.min.js"></script>
+    <!--Chart JS-->
+    <script src="assets/js/charts/chart.min.js"></script>
+    <!--Chartist JS-->
+    <script src="assets/js/charts/chartist.min.js"></script>
+    <script src="assets/js/charts/chartist-data.js"></script>
+    <script src="assets/js/charts/demo.js"></script>
+    <!--Maps-->
+    <script src="assets/js/maps/jquery-jvectormap-2.0.2.min.js"></script>
+    <script src="assets/js/maps/jquery-jvectormap-world-mill-en.js"></script>
+    <script src="assets/js/maps/jvector-maps.js"></script>
+    <!--Bootstrap Calendar JS-->
+    <script src="assets/js/calendar/bootstrap_calendar.js"></script>
+    <script src="assets/js/calendar/demo.js"></script>
+    <!--Nice select-->
+    <script src="assets/js/jquery.nice-select.min.js"></script>
+
+    <!--Custom Js Script-->
+    <script src="assets/js/custom.js"></script>
+    <!--Custom Js Script-->
+    <script>
+        //Nice select
+        $('.bulk-actions').niceSelect();
+    </script>
+}

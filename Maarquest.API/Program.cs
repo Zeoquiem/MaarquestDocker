@@ -1,3 +1,4 @@
+using Maarquest.API.Data;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,7 +20,7 @@ namespace Maarquest.API
 
             try
             {
-                var dbContext = services.GetRequiredService<AppDbContext>();
+                var dbContext = services.GetRequiredService<MaarquestContext>();
                 if (dbContext.Database.IsSqlServer())
                 {
                     dbContext.Database.Migrate();
