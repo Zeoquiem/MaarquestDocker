@@ -1,4 +1,4 @@
-﻿// Controllers/ProductTypeController.cs
+﻿// Controllers/PromotionController.cs
 
 using Maarquest.API.Data;
 using Maarquest.API.Mappers;
@@ -12,11 +12,11 @@ namespace DockerSqlServer.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class ProductTypeController
+    public class PromotionController
     {
         private readonly MaarquestContext _db;
 
-        public ProductTypeController(MaarquestContext db)
+        public PromotionController(MaarquestContext db)
         {
             _db = db;
         }
@@ -24,9 +24,9 @@ namespace DockerSqlServer.Controllers
         [HttpGet]
         public async Task<IActionResult> Get()
         {
-            var data = await _db.PRODUCT_TYPE.ToListAsync();
+            var data = await _db.PROMOTION.ToListAsync();
 
-            List<ProductType> result = ProductTypeMapper.ConvertToProductTypeList(data);
+            List<Promotion> result = PromotionMapper.ConvertToPromotionList(data);
 
             return new JsonResult(result);
         }
@@ -34,38 +34,33 @@ namespace DockerSqlServer.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(int id)
         {
-            var data = await _db.PRODUCT_TYPE.FirstOrDefaultAsync(n => n.PRODUCT_TYPE_ID == id);
+            var data = await _db.PROMOTION.FirstOrDefaultAsync(n => n.PROMOTION_ID == id);
 
-            ProductType result = ProductTypeMapper.ConvertToProductType(data);
+            Promotion result = PromotionMapper.ConvertToPromotion(data);
 
             return new JsonResult(result);
         }
 
         [HttpPost]
-        public async Task<IActionResult> Post(ProductType productType)
+        public async Task<IActionResult> Post(Promotion promotion)
         {
-            PRODUCT_TYPE data = ProductTypeMapper.ConvertToPRODUCT_TYPE(productType);
+            PROMOTION data = PromotionMapper.ConvertToPROMOTION(promotion);
 
-            var res = _db.PRODUCT_TYPE.Add(data);
+            var res = _db.PROMOTION.Add(data);
             await _db.SaveChangesAsync();
 
-            ProductType result = ProductTypeMapper.ConvertToProductType(res.Entity);
+            Promotion result = PromotionMapper.ConvertToPromotion(res.Entity);
 
             return new JsonResult(result);
         }
 
         [HttpPut]
-        public async Task<IActionResult> Put(int id, ProductType productType)
+        public async Task<IActionResult> Put(int id, Promotion promotion)
         {
-            var existingProductType = await _db.PRODUCT_TYPE.FirstOrDefaultAsync(n => n.PRODUCT_TYPE_ID == id);
-            existingProductType.SUPPLIER_ID = (productType.SupplierId > 0) ? productType.SupplierId : existingProductType.SUPPLIER_ID;
-            existingProductType.NAME = (productType.Name != null) ? productType.Name : existingProductType.NAME;
-            existingProductType.PRODUCT_CATEGORY_ID = (productType.ProductCategoryId > 0) ? productType.ProductCategoryId : existingProductType.PRODUCT_CATEGORY_ID;
-            existingProductType.DETAILS = (productType.Details != null) ? productType.Details : existingProductType.DETAILS;
-            existingProductType.QUANTITY = (productType.Quantity > 0) ? productType.Quantity : existingProductType.QUANTITY;
-            existingProductType.UNIT_PRICE = (productType.UnitPrice > 0) ? productType.UnitPrice : existingProductType.UNIT_PRICE;
-            existingProductType.TAX = (productType.Tax > 0) ? productType.Tax : existingProductType.TAX;
-            existingProductType.TOTAL_PRICE = (productType.TotalPrice > 0) ? productType.TotalPrice : existingProductType.TOTAL_PRICE;
+            var existingPromotion = await _db.PROMOTION.FirstOrDefaultAsync(n => n.PROMOTION_ID == id);
+            existingPromotion.PROMOTION_PACK_ID = (promotion.PromotionPackId > 0) ? promotion.PromotionPackId : existingPromotion.PROMOTION_PACK_ID;
+            existingPromotion.PROMOTION_TYPE_ID = (promotion.PromotionTypeId != null) ? promotion.PromotionTypeId : existingPromotion.PROMOTION_TYPE_ID;
+            existingPromotion.PRODUCT_TYPE_ID = (promotion.ProductTypeId > 0) ? promotion.ProductTypeId : existingPromotion.PRODUCT_TYPE_ID;
             var success = (await _db.SaveChangesAsync()) > 0;
 
             return new JsonResult(success);
@@ -74,8 +69,8 @@ namespace DockerSqlServer.Controllers
         [HttpDelete]
         public async Task<IActionResult> Delete(int id)
         {
-            var productType = await _db.PRODUCT_TYPE.FirstOrDefaultAsync(n => n.PRODUCT_TYPE_ID == id);
-            _db.Remove(productType);
+            var promotion = await _db.PROMOTION.FirstOrDefaultAsync(n => n.PROMOTION_ID == id);
+            _db.Remove(promotion);
             var success = (await _db.SaveChangesAsync()) > 0;
 
             return new JsonResult(success);
